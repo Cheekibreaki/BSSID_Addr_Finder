@@ -13,30 +13,46 @@ package com.example.mac_address;
 //}
 
 import android.Manifest;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.content.Intent;
+import android.net.Uri;
+
+import android.provider.Settings;
+
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.channels.FileChannel;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_CODE = 1;
-
+    private DatabaseHelper dbHelper;
     private EditText editTextGridId;
     private Button buttonStartScan;
     private TextView textViewScanResults;
-
+    private Button buttonExtractDatabase;
     private WifiManager wifiManager;
 
     @Override
@@ -61,7 +77,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        buttonExtractDatabase = findViewById(R.id.buttonExtractDatabase);
+        buttonExtractDatabase.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                extractDbFile();
+            }
+        });
+
+
+
+
+
+        dbHelper = new DatabaseHelper(this);
     }
+
+
 
     private void startWifiScan(String gridId) {
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -74,17 +106,80 @@ public class MainActivity extends AppCompatActivity {
 
         List<ScanResult> scanResults = wifiManager.getScanResults();
         if (scanResults != null && !scanResults.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
+//            StringBuilder sb = new StringBuilder();
             for (ScanResult scanResult : scanResults) {
                 String bssid = scanResult.BSSID;
                 String wifiName = scanResult.SSID;
                 int level = scanResult.level;
-                sb.append("BSSID: ").append(bssid).append("; WIFI name: ").append(wifiName)
-                        .append("; Level: ").append(level).append("\n");
+                if(wifiName.equals("UofT")) {
+                    Log.d("DatabaseHelper","inserted");
+                    dbHelper.insertData(bssid, gridId, String.valueOf(level),wifiName);
+                }
+
+//                sb.append("BSSID: ").append(bssid).append("; WIFI name: ").append(wifiName)
+//                        .append("; Level: ").append(level).append("\n");
             }
 
-            String scanResultText = sb.toString().trim();
-            textViewScanResults.setText(scanResultText);
+            String databaseContents = dbHelper.getAllDataAsString();
+            textViewScanResults.setText(databaseContents);
+        }else {
+            textViewScanResults.setText("No Wi-Fi scan results available.");
         }
     }
+
+    private void extractDbFile(){
+
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.MANAGE_EXTERNAL_STORAGE}, 1);
+//        Intent intent = new Intent();
+//        intent.setAction(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+//        Uri uri = Uri.fromParts("package", this.getPackageName(), null);
+//        intent.setData(uri);
+//        startActivity(intent);
+
+        boolean success = exportDatabase("scanResult.db");
+        if(success){
+            Log.d("ExtractDB", "Extraction succeed" );
+            Toast.makeText(MainActivity.this, "Exported", Toast.LENGTH_SHORT).show();
+        }else{
+            Log.d("ExtractDB", "Extraction failed" );
+        }
+
+    }
+
+    public boolean exportDatabase(String filename) {
+        Log.d("DatabaseHelper", "EnterExportDatabase");
+        try {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/x-sqlite3");
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS);
+
+            Uri uri = getContentResolver().insert(MediaStore.Files.getContentUri("external"), values);
+            if (uri == null) {
+                Log.e("DatabaseHelper", "Failed to create new MediaStore record.");
+                return false;
+            }
+
+            try (ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
+                 FileChannel src = new FileInputStream(new File(dbHelper.getReadableDatabase().getPath())).getChannel();
+                 FileOutputStream outputStream = new FileOutputStream(pfd.getFileDescriptor());
+                 FileChannel dst = outputStream.getChannel()) {
+
+                dst.transferFrom(src, 0, src.size());
+                Log.d("DatabaseHelper", "Database exported to " + uri.toString());
+                return true;
+
+            } catch (Exception e) {
+                Log.e("DatabaseHelper", "Error exporting database: " + e.getMessage());
+                getContentResolver().delete(uri, null, null);
+                return false;
+            }
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error exporting database: " + e.getMessage());
+            return false;
+        }
+    }
+
 }
