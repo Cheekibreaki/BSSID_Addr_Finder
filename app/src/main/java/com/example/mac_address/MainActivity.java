@@ -38,6 +38,7 @@ import android.provider.Settings;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import android.os.CountDownTimer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,19 +51,29 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_CODE = 1;
     private DatabaseHelper dbHelper;
     private EditText editTextGridId;
-    private Button buttonStartScan;
+    private EditText editTextBSSID;
     private TextView textViewScanResults;
-    private Button buttonExtractDatabase;
+
     private WifiManager wifiManager;
 
-    @Override
+    private Button buttonCheckDatabase;
+    private Button buttonExtractDatabase;
+    private Button buttonStartScan;
+    private Button buttonEraseDatabase;
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         editTextGridId = findViewById(R.id.editTextGridId);
+        editTextBSSID = findViewById(R.id.editTextBSSID);
         buttonStartScan = findViewById(R.id.buttonStartScan);
+        buttonCheckDatabase = findViewById(R.id.buttonCheckDatabase);
+        buttonEraseDatabase = findViewById(R.id.buttonEraseDatabase);
         textViewScanResults = findViewById(R.id.textViewScanResults);
+
+
+
 
         wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
 
@@ -78,6 +89,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+
+        buttonCheckDatabase.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String gridId = editTextGridId.getText().toString().trim();
+                String bssId = editTextBSSID.getText().toString().trim();
+                String databaseContents = dbHelper.getSpecDataAsString(gridId,bssId);
+                textViewScanResults.setText(databaseContents);
+
+            }
+        });
+
         buttonExtractDatabase = findViewById(R.id.buttonExtractDatabase);
         buttonExtractDatabase.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -86,9 +110,31 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+//        buttonEraseDatabase.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                dbHelper.eraseDatabase();
+//            }
+//        });
 
+        buttonEraseDatabase.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                // Start a 3-second countdown timer
+                new CountDownTimer(3000, 1000) {
+                    public void onTick(long millisUntilFinished) {
+                        // Optional: Update UI to show remaining time
+                    }
 
-
+                    public void onFinish() {
+                        // Erase the database after 3 seconds
+                        dbHelper.eraseDatabase();
+                        Toast.makeText(MainActivity.this, "Database erased", Toast.LENGTH_SHORT).show();
+                    }
+                }.start();
+                return true; // Return true to indicate that the callback consumed the long click
+            }
+        });
 
         dbHelper = new DatabaseHelper(this);
     }
@@ -120,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
 //                        .append("; Level: ").append(level).append("\n");
             }
 
-            String databaseContents = dbHelper.getAllDataAsString();
+            String databaseContents = dbHelper.getSpecDataAsString(gridId,"");
             textViewScanResults.setText(databaseContents);
         }else {
             textViewScanResults.setText("No Wi-Fi scan results available.");

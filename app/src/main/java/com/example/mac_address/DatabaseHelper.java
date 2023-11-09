@@ -5,16 +5,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.content.ContentValues;
 import android.util.Log; // Import the Log class
 import android.database.Cursor;
-import java.io.File;
-import android.provider.MediaStore;
-import android.net.Uri;
-import android.os.Environment;
-import android.os.ParcelFileDescriptor;
-import java.nio.channels.FileChannel;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-
-
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class DatabaseHelper extends SQLiteOpenHelper{
@@ -77,10 +69,33 @@ public class DatabaseHelper extends SQLiteOpenHelper{
         }
     }
 
-    public String getAllDataAsString() {
+    public void eraseDatabase(){
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM " + TABLE_NAME;
-        Cursor cursor = db.rawQuery(query, null);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+        onCreate(db);
+    }
+
+    public String getSpecDataAsString(String _GRIDID, String _BSSID) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query;
+        List<String> selectionArgs = new ArrayList<>();
+
+        // Building the query based on the provided BSSID and GRIDID
+        if (!_BSSID.isEmpty() && !_GRIDID.isEmpty()) {
+            query = "SELECT * FROM " + TABLE_NAME + " WHERE BSSID = ? AND GRIDID = ?";
+            selectionArgs.add(_BSSID);
+            selectionArgs.add(_GRIDID);
+        } else if (!_BSSID.isEmpty()) {
+            query = "SELECT * FROM " + TABLE_NAME + " WHERE BSSID = ?";
+            selectionArgs.add(_BSSID);
+        } else if (!_GRIDID.isEmpty()) {
+            query = "SELECT * FROM " + TABLE_NAME + " WHERE GRIDID = ?";
+            selectionArgs.add(_GRIDID);
+        } else {
+            query = "SELECT * FROM " + TABLE_NAME;
+        }
+        query += " ORDER BY BSSID ASC";
+        Cursor cursor = db.rawQuery(query, selectionArgs.toArray(new String[0]));
 
         StringBuilder stringBuilder = new StringBuilder();
 
@@ -89,12 +104,10 @@ public class DatabaseHelper extends SQLiteOpenHelper{
                 String bssid = cursor.getString(cursor.getColumnIndex(BSSID));
                 String gridId = cursor.getString(cursor.getColumnIndex(GRIDID));
                 String level = cursor.getString(cursor.getColumnIndex(LEVEL));
-                String wifiName = cursor.getString(cursor.getColumnIndex(WIFINAME));
 
                 stringBuilder.append("BSSID: ").append(bssid)
                         .append(", GRIDID: ").append(gridId)
                         .append(", LEVEL: ").append(level)
-                        .append(", WIFI NAME: ").append(wifiName)
                         .append("\n");
             } while (cursor.moveToNext());
         } else {
@@ -104,37 +117,6 @@ public class DatabaseHelper extends SQLiteOpenHelper{
 
         return stringBuilder.toString();
     }
-
-
-
-
-//    public boolean exportDatabase(String folderpath, String outputPath) {
-//        Log.d("DatabaseHelper", "EnterExportDatabase");
-//        try {
-////            File sd = Environment.getExternalStorageDirectory();
-////            if (sd.canWrite()) {
-//                String currentDBPath = getReadableDatabase().getPath();
-//                File currentDB = new File(currentDBPath);
-//                File backupDB = new File(folderpath, outputPath);
-//
-//                if (currentDB.exists()) {
-//                    try (FileChannel src = new FileInputStream(currentDB).getChannel();
-//                         FileChannel dst = new FileOutputStream(backupDB).getChannel()) {
-//                        dst.transferFrom(src, 0, src.size());
-//                        Log.d("DatabaseHelper", "Database exported to " + backupDB.getPath());
-//                        return true;
-//                    }
-//                }else{
-//                    Log.d("DatabaseHelper", "Can not find currentDB" + currentDB.getPath());
-//                }
-////            }else{
-////                Log.e("DatabaseHelper", "Can not write External: " );
-////            }
-//        } catch (Exception e) {
-//            Log.e("DatabaseHelper", "Error exporting database: " + e.getMessage());
-//        }
-//        return false;
-//    }
 
 
 

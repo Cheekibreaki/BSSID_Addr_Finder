@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -19,41 +19,71 @@
             android:layout_marginTop="16dp"
             android:layout_marginHorizontal="16dp" />
 
+        <EditText
+            android:layout_below="@id/editTextGridId"
+            android:id="@+id/editTextBSSID"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter BSSID ID"
+            android:layout_marginTop="16dp"
+            android:layout_marginHorizontal="16dp" />
+
+
+
         <Button
             android:id="@+id/buttonStartScan"
+            style="@style/Widget.AppCompat.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/editTextGridId"
-            android:layout_marginTop="16dp"
-            android:layout_marginHorizontal="16dp"
+            android:layout_below="@id/editTextBSSID"
+            android:layout_marginHorizontal="10dp"
+            android:layout_marginTop="22dp"
             android:text="Start Scan" />
 
-<!--        <TextView-->
-<!--            android:id="@+id/textViewScanResults"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_below="@id/buttonStartScan"-->
-<!--            android:layout_marginTop="16dp"-->
-<!--            android:layout_marginHorizontal="16dp" />-->
         <Button
             android:id="@+id/buttonExtractDatabase"
+            style="@style/Widget.AppCompat.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@id/buttonStartScan"
             android:layout_alignTop="@id/buttonStartScan"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginTop="0dp"
+            android:layout_toEndOf="@id/buttonStartScan"
             android:text="Extract Database" />
+
+        <Button
+            android:id="@+id/buttonCheckDatabase"
+            style="@style/Widget.AppCompat.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@id/buttonStartScan"
+            android:layout_marginHorizontal="10dp"
+            android:layout_marginTop="53dp"
+            android:text="Check Database" />
+
+        <Button
+            android:id="@+id/buttonEraseDatabase"
+            style="@style/Widget.AppCompat.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@id/buttonExtractDatabase"
+
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="53dp"
+            android:layout_toEndOf="@id/buttonCheckDatabase"
+            android:text="Erase Database" />
 
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/buttonStartScan"
-            android:layout_marginTop="16dp"
-            android:layout_marginHorizontal="16dp">
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="63dp">
 
             <TextView
                 android:id="@+id/textViewScanResults"
                 android:layout_width="match_parent"
+                android:textIsSelectable="true"
                 android:layout_height="wrap_content" />
         </ScrollView>
 
