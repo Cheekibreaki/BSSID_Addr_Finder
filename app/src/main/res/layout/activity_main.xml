@@ -74,6 +74,7 @@
             android:text="Erase Database" />
 
         <ScrollView
+            android:id="@+id/scrollview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/buttonStartScan"
@@ -86,6 +87,14 @@
                 android:textIsSelectable="true"
                 android:layout_height="wrap_content" />
         </ScrollView>
+
+        <com.example.mac_address.ZoomableImageView
+            android:id="@+id/zoomableImageView"
+            android:layout_width="match_parent"
+            android:layout_height="295dp"
+            android:layout_below="@id/scrollview"
+            android:layout_marginTop="29dp"
+            tools:srcCompat="@tools:sample/avatars" />
 
     </RelativeLayout>
 

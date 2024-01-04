@@ -1,20 +1,10 @@
 package com.example.mac_address;
 
-//import androidx.appcompat.app.AppCompatActivity;
-//import android.os.Bundle;
-//
-//public class MainActivity extends AppCompatActivity {
-//
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
-//    }
-//}
 
 import android.Manifest;
 import android.content.ContentValues;
 import android.content.Context;
+import android.widget.ImageView;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -28,6 +18,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.example.mac_address.ZoomableImageView;
+
+import android.view.MotionEvent;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -137,6 +132,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         dbHelper = new DatabaseHelper(this);
+
+        ZoomableImageView zoomableImageView = findViewById(R.id.zoomableImageView);
+        zoomableImageView.setImageResource(R.drawable.bahen_1stfloor);
+
+
+
+
     }
 
 
