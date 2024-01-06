@@ -105,12 +105,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        buttonEraseDatabase.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                dbHelper.eraseDatabase();
-//            }
-//        });
+
 
         buttonEraseDatabase.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -137,10 +132,32 @@ public class MainActivity extends AppCompatActivity {
         zoomableImageView.setImageResource(R.drawable.bahen_1stfloor);
 
 
+        //if press second button
+        setupButton(R.id.button1, R.drawable.bahen_1stfloor, zoomableImageView);
+        setupButton(R.id.button2, R.drawable.bahen_2ndfloor, zoomableImageView);
+        setupButton(R.id.button3, R.drawable.bahen_3rdfloor, zoomableImageView);
+        setupButton(R.id.button5, R.drawable.bahen_5thfloor, zoomableImageView);
+        setupButton(R.id.button7, R.drawable.bahen_7thfloor, zoomableImageView);
+        setupButton(R.id.button8, R.drawable.bahen_8thfloor, zoomableImageView);
+        setupButton(R.id.buttonB, R.drawable.bahen_basement, zoomableImageView);
+
+
+
+
+
 
 
     }
 
+    private void setupButton(int buttonId, final int imageResourceId, ZoomableImageView zoomableImageView) {
+        Button button = findViewById(buttonId);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                zoomableImageView.setImageResource(imageResourceId);
+            }
+        });
+    }
 
 
     private void startWifiScan(String gridId) {
@@ -180,11 +197,6 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
                         Manifest.permission.MANAGE_EXTERNAL_STORAGE}, 1);
-//        Intent intent = new Intent();
-//        intent.setAction(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-//        Uri uri = Uri.fromParts("package", this.getPackageName(), null);
-//        intent.setData(uri);
-//        startActivity(intent);
 
         boolean success = exportDatabase("scanResult.db");
         if(success){
