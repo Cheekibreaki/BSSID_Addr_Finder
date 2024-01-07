@@ -17,13 +17,15 @@ public class DatabaseHelper extends SQLiteOpenHelper{
     public static final String _ID = "_id";
     public static final String BSSID = "bssid";
     public static final String LEVEL = "level";
-    public static final String GRIDID = "gridid";
+    public static final String IMAGEPIXELX = "imagepixelx";
+    public static final String IMAGEPIXELY = "imagepixely";
+    public static final String FLOORNUM = "floornum";
     public static final String WIFINAME = "wifiname";
     // Database Information
     static final String DB_NAME = "SIGNAL_STRENGTH_DETECT.DB";
 
     // database version
-    static final int DB_VERSION = 6;
+    static final int DB_VERSION = 7;
 
 
 
@@ -32,9 +34,11 @@ public class DatabaseHelper extends SQLiteOpenHelper{
             + _ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
             + BSSID + " TEXT NOT NULL, "
             + WIFINAME + " TEXT NOT NULL, "
-            + GRIDID + " TEXT NOT NULL, "
+            + IMAGEPIXELX + " TEXT NOT NULL, "
+            + IMAGEPIXELY+ " TEXT NOT NULL, "
+            + FLOORNUM + " TEXT NOT NULL, "
             + LEVEL + " TEXT, "
-            + "UNIQUE (" + GRIDID + ", " + BSSID + "));"; // Combined UNIQUE constraint
+            + "UNIQUE (" + IMAGEPIXELX + "," + IMAGEPIXELY + ", " + BSSID + "," + FLOORNUM + "));"; // Combined UNIQUE constraint
     public DatabaseHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
     }
@@ -51,11 +55,13 @@ public class DatabaseHelper extends SQLiteOpenHelper{
         onCreate(db);
     }
 
-    public void insertData(String bssid, String gridId, String level, String wifiname) {
+    public void insertData(String bssid, String imagePixelX, String imagePixelY, String floornum, String level, String wifiname) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(BSSID, bssid);
-        contentValues.put(GRIDID, gridId);
+        contentValues.put(IMAGEPIXELX, imagePixelX);
+        contentValues.put(IMAGEPIXELY, imagePixelY);
+        contentValues.put(FLOORNUM, floornum);
         contentValues.put(LEVEL, level);
         contentValues.put(WIFINAME, wifiname);
         // Using INSERT OR IGNORE to avoid duplicate entries
@@ -63,9 +69,9 @@ public class DatabaseHelper extends SQLiteOpenHelper{
 
         // Check if insertion was successful
         if (rowId != -1) {
-            Log.d("DatabaseHelper", "Data inserted: GridID = " + gridId + ", BSSID = " + bssid);
+            Log.d("DatabaseHelper", "Data inserted: imagePixelX = " + imagePixelX + ", imagePixelY =" + imagePixelY + ", BSSID = " + bssid);
         } else {
-            Log.d("DatabaseHelper", "Insertion failed for GridID = " + gridId);
+            Log.d("DatabaseHelper", "Insertion failed");
         }
     }
 
@@ -75,22 +81,21 @@ public class DatabaseHelper extends SQLiteOpenHelper{
         onCreate(db);
     }
 
-    public String getSpecDataAsString(String _GRIDID, String _BSSID) {
+    public String getSpecDataAsString(String floornumArg, String _BSSID) {
         SQLiteDatabase db = this.getReadableDatabase();
         String query;
         List<String> selectionArgs = new ArrayList<>();
 
-        // Building the query based on the provided BSSID and GRIDID
-        if (!_BSSID.isEmpty() && !_GRIDID.isEmpty()) {
-            query = "SELECT * FROM " + TABLE_NAME + " WHERE BSSID = ? AND GRIDID = ?";
+        if (!_BSSID.isEmpty() && !floornumArg.isEmpty()) {
+            query = "SELECT * FROM " + TABLE_NAME + " WHERE BSSID = ? AND FLOORNUM = ?";
             selectionArgs.add(_BSSID);
-            selectionArgs.add(_GRIDID);
+            selectionArgs.add(floornumArg);
         } else if (!_BSSID.isEmpty()) {
             query = "SELECT * FROM " + TABLE_NAME + " WHERE BSSID = ?";
             selectionArgs.add(_BSSID);
-        } else if (!_GRIDID.isEmpty()) {
-            query = "SELECT * FROM " + TABLE_NAME + " WHERE GRIDID = ?";
-            selectionArgs.add(_GRIDID);
+        } else if (!floornumArg.isEmpty()) {
+            query = "SELECT * FROM " + TABLE_NAME + " WHERE FLOORNUM = ?";
+            selectionArgs.add(floornumArg);
         } else {
             query = "SELECT * FROM " + TABLE_NAME;
         }
@@ -102,11 +107,15 @@ public class DatabaseHelper extends SQLiteOpenHelper{
         if (cursor.moveToFirst()) {
             do {
                 String bssid = cursor.getString(cursor.getColumnIndex(BSSID));
-                String gridId = cursor.getString(cursor.getColumnIndex(GRIDID));
+                String imagePixelX = cursor.getString(cursor.getColumnIndex(IMAGEPIXELX));
+                String imagePixelY = cursor.getString(cursor.getColumnIndex(IMAGEPIXELY));
+                String floornum = cursor.getString(cursor.getColumnIndex(FLOORNUM));
                 String level = cursor.getString(cursor.getColumnIndex(LEVEL));
 
                 stringBuilder.append("BSSID: ").append(bssid)
-                        .append(", GRIDID: ").append(gridId)
+                        .append(", X: ").append(imagePixelX)
+                        .append(", Y: ").append(imagePixelY)
+                        .append(", FLOORNUM: ").append(floornum)
                         .append(", LEVEL: ").append(level)
                         .append("\n");
             } while (cursor.moveToNext());
@@ -118,6 +127,28 @@ public class DatabaseHelper extends SQLiteOpenHelper{
         return stringBuilder.toString();
     }
 
+    public List<String> getUniqueImagePixelCoordinates() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        List<String> uniqueCoordinates = new ArrayList<>();
+
+        String query = "SELECT DISTINCT " + IMAGEPIXELX + ", " + IMAGEPIXELY + " FROM " + TABLE_NAME;
+        Cursor cursor = db.rawQuery(query, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String imagePixelX = cursor.getString(cursor.getColumnIndex(IMAGEPIXELX));
+                String imagePixelY = cursor.getString(cursor.getColumnIndex(IMAGEPIXELY));
+
+                String coordinatePair = "X: " + imagePixelX + ", Y: " + imagePixelY;
+                uniqueCoordinates.add(coordinatePair);
+            } while (cursor.moveToNext());
+        } else {
+            uniqueCoordinates.add("No unique coordinates found.");
+        }
+        cursor.close();
+
+        return uniqueCoordinates;
+    }
 
 
 

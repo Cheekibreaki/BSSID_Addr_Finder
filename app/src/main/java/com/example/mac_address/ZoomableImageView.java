@@ -18,7 +18,7 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
     private ScaleGestureDetector scaleGestureDetector;
     private PointF lastTouchPoint; // For tracking the last touch point during drag
     private float[] matrixValues; // To store matrix values during transformations
-
+    private PointF imagePoint;
     private GestureDetector gestureDetector;
 
     public ZoomableImageView(Context context, AttributeSet attrs) {
@@ -47,6 +47,9 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
 
     }
 
+    public PointF getimagePoint(){
+        return imagePoint;
+    }
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         scaleGestureDetector.onTouchEvent(event);
@@ -95,7 +98,7 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
         float touchY = event.getY();
 
         // Convert touch coordinates into image coordinates
-        PointF imagePoint = transformTouchCoordinates(touchX, touchY);
+        imagePoint = transformTouchCoordinates(touchX, touchY);
 
         // Create a message with the coordinates
         String message = String.format("Image coordinates: (%.2f, %.2f)",
@@ -114,36 +117,9 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
     private PointF transformTouchCoordinates(float touchX, float touchY) {
         Matrix inverse = new Matrix();
         matrix.invert(inverse);
-
-        // Transform touch coordinates to match the image matrix
         float[] touchPoint = new float[]{touchX, touchY};
         inverse.mapPoints(touchPoint);
-
-        Drawable drawable = getDrawable();
-        if (drawable == null) {
-            return new PointF(0, 0);
-        }
-
-        int drawableWidth = drawable.getIntrinsicWidth();
-        int drawableHeight = drawable.getIntrinsicHeight();
-
-        // Calculate the scale factors
-        float scaleX = getWidth() / (float) drawableWidth;
-        float scaleY = getHeight() / (float) drawableHeight;
-
-        // Adjust scale factors based on the ImageView's scaling logic (e.g., centerCrop, fitXY, etc.)
-        // For simplicity, assuming fitCenter or similar. Adjust as necessary for your specific use case.
-        float actualScale = Math.min(scaleX, scaleY);
-
-        // Adjust the coordinates to get the relative position on the original image
-        float adjustedX = (touchPoint[0] / actualScale);
-        float adjustedY = (touchPoint[1] / actualScale);
-
-        // Clamp values to the image's bounds
-        adjustedX = Math.max(0, Math.min(adjustedX, drawableWidth));
-        adjustedY = Math.max(0, Math.min(adjustedY, drawableHeight));
-
-        return new PointF(adjustedX, adjustedY);
+        return new PointF(touchPoint[0], touchPoint[1]);
     }
 
     private PointF longPressPoint; // For storing the long press location

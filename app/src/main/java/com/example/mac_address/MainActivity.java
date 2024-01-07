@@ -4,6 +4,7 @@ package com.example.mac_address;
 import android.Manifest;
 import android.content.ContentValues;
 import android.content.Context;
+import android.graphics.PointF;
 import android.widget.ImageView;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
@@ -45,10 +46,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_CODE = 1;
     private DatabaseHelper dbHelper;
-    private EditText editTextGridId;
     private EditText editTextBSSID;
     private TextView textViewScanResults;
-
+    private String floorNum = "1";
     private WifiManager wifiManager;
 
     private Button buttonCheckDatabase;
@@ -56,17 +56,17 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonStartScan;
     private Button buttonEraseDatabase;
 
+    private ZoomableImageView zoomableImageView;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        editTextGridId = findViewById(R.id.editTextGridId);
         editTextBSSID = findViewById(R.id.editTextBSSID);
         buttonStartScan = findViewById(R.id.buttonStartScan);
         buttonCheckDatabase = findViewById(R.id.buttonCheckDatabase);
         buttonEraseDatabase = findViewById(R.id.buttonEraseDatabase);
         textViewScanResults = findViewById(R.id.textViewScanResults);
-
+        zoomableImageView = findViewById(R.id.zoomableImageView);
 
 
 
@@ -75,12 +75,12 @@ public class MainActivity extends AppCompatActivity {
         buttonStartScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String gridId = editTextGridId.getText().toString().trim();
-                if (!gridId.isEmpty()) {
-                    startWifiScan(gridId);
-                } else {
-                    Toast.makeText(MainActivity.this, "Please enter a Grid ID", Toast.LENGTH_SHORT).show();
-                }
+                PointF imagePoint = zoomableImageView.getimagePoint();
+
+                startWifiScan(floorNum,imagePoint);
+
+                //Toast.makeText(MainActivity.this, "Please enter a Grid ID", Toast.LENGTH_SHORT).show();
+
             }
         });
 
@@ -89,9 +89,8 @@ public class MainActivity extends AppCompatActivity {
         buttonCheckDatabase.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String gridId = editTextGridId.getText().toString().trim();
                 String bssId = editTextBSSID.getText().toString().trim();
-                String databaseContents = dbHelper.getSpecDataAsString(gridId,bssId);
+                String databaseContents = dbHelper.getSpecDataAsString(floorNum,bssId);
                 textViewScanResults.setText(databaseContents);
 
             }
@@ -128,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
 
-        ZoomableImageView zoomableImageView = findViewById(R.id.zoomableImageView);
+
         zoomableImageView.setImageResource(R.drawable.bahen_1stfloor);
 
 
@@ -141,12 +140,6 @@ public class MainActivity extends AppCompatActivity {
         setupButton(R.id.button8, R.drawable.bahen_8thfloor, zoomableImageView);
         setupButton(R.id.buttonB, R.drawable.bahen_basement, zoomableImageView);
 
-
-
-
-
-
-
     }
 
     private void setupButton(int buttonId, final int imageResourceId, ZoomableImageView zoomableImageView) {
@@ -155,12 +148,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 zoomableImageView.setImageResource(imageResourceId);
+                String resourceName = getResources().getResourceEntryName(button.getId());
+
+                // Extract the character after "button"
+                if(resourceName.startsWith("button")) {
+                    floorNum = resourceName.substring("button".length());
+                    // Do something with the extracted string (floorIdentifier)
+                }
             }
         });
     }
 
 
-    private void startWifiScan(String gridId) {
+    private void startWifiScan(String floorNum, PointF imagePoint) {
+        String imagePointX = Float.toString(imagePoint.x);
+        String imagePointY = Float.toString(imagePoint.y);
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MainActivity.this,
@@ -176,20 +178,22 @@ public class MainActivity extends AppCompatActivity {
                 String bssid = scanResult.BSSID;
                 String wifiName = scanResult.SSID;
                 int level = scanResult.level;
-                if(wifiName.equals("UofT")) {
-                    Log.d("DatabaseHelper","inserted");
-                    dbHelper.insertData(bssid, gridId, String.valueOf(level),wifiName);
-                }
-
+//                if(wifiName.equals("UofT")) {
+//                    Log.d("DatabaseHelper","inserted");
+//                    dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
+//                }
+                dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
 //                sb.append("BSSID: ").append(bssid).append("; WIFI name: ").append(wifiName)
 //                        .append("; Level: ").append(level).append("\n");
             }
 
-            String databaseContents = dbHelper.getSpecDataAsString(gridId,"");
+            String databaseContents = dbHelper.getSpecDataAsString(floorNum,"");
             textViewScanResults.setText(databaseContents);
         }else {
             textViewScanResults.setText("No Wi-Fi scan results available.");
         }
+        List<String> pixelCoordinates = dbHelper.getUniqueImagePixelCoordinates();
+
     }
 
     private void extractDbFile(){
