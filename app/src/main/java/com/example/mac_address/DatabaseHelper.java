@@ -127,28 +127,26 @@ public class DatabaseHelper extends SQLiteOpenHelper{
         return stringBuilder.toString();
     }
 
-    public List<String> getUniqueImagePixelCoordinates() {
+    public List<String> getUniqueImagePixelCoordinates(String floornum) {
         SQLiteDatabase db = this.getReadableDatabase();
         List<String> uniqueCoordinates = new ArrayList<>();
 
-        String query = "SELECT DISTINCT " + IMAGEPIXELX + ", " + IMAGEPIXELY + " FROM " + TABLE_NAME;
-        Cursor cursor = db.rawQuery(query, null);
+        String query = "SELECT DISTINCT " + IMAGEPIXELX + ", " + IMAGEPIXELY + " FROM " + TABLE_NAME + " WHERE FLOORNUM = ?";
+        Cursor cursor = db.rawQuery(query, new String[] {floornum});
 
         if (cursor.moveToFirst()) {
             do {
                 String imagePixelX = cursor.getString(cursor.getColumnIndex(IMAGEPIXELX));
                 String imagePixelY = cursor.getString(cursor.getColumnIndex(IMAGEPIXELY));
-
                 String coordinatePair = "X: " + imagePixelX + ", Y: " + imagePixelY;
                 uniqueCoordinates.add(coordinatePair);
             } while (cursor.moveToNext());
-        } else {
-            uniqueCoordinates.add("No unique coordinates found.");
         }
         cursor.close();
 
         return uniqueCoordinates;
     }
+
 
 
 

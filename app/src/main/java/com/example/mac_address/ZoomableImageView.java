@@ -12,6 +12,10 @@ import android.graphics.drawable.Drawable;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Color;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageView {
 
     private Matrix matrix;
@@ -20,6 +24,9 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
     private float[] matrixValues; // To store matrix values during transformations
     private PointF imagePoint;
     private GestureDetector gestureDetector;
+
+    private List<PointF> uniquePoints = new ArrayList<>(); // List to store unique points
+    private Paint bluePaint; // Paint for drawing blue points
 
     public ZoomableImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -45,7 +52,17 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
         paint.setColor(Color.RED); // Set the color of the dot
         paint.setStyle(Paint.Style.FILL);
 
+
+        bluePaint = new Paint();
+        bluePaint.setColor(Color.BLUE); // Set the color to blue
+        bluePaint.setStyle(Paint.Style.FILL);
     }
+
+    public void setUniquePoints(List<PointF> points) {
+        this.uniquePoints = points;
+        invalidate(); // Redraw to show the new points
+    }
+
 
     public PointF getimagePoint(){
         return imagePoint;
@@ -141,6 +158,13 @@ public class ZoomableImageView extends androidx.appcompat.widget.AppCompatImageV
             matrix.mapPoints(mappedPoints, new float[]{longPressPoint.x, longPressPoint.y});
             float dotRadius = 10; // Radius of the dot
             canvas.drawCircle(mappedPoints[0], mappedPoints[1], dotRadius, paint);
+        }
+
+        float dotRadius = 10; // Adjust the radius as needed
+        for (PointF point : uniquePoints) {
+            float[] mappedPoints = new float[2];
+            matrix.mapPoints(mappedPoints, new float[]{point.x, point.y});
+            canvas.drawCircle(mappedPoints[0], mappedPoints[1], dotRadius, bluePaint);
         }
     }
 

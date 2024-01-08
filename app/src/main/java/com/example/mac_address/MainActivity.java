@@ -40,6 +40,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -154,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
                 if(resourceName.startsWith("button")) {
                     floorNum = resourceName.substring("button".length());
                     // Do something with the extracted string (floorIdentifier)
+                    updateBluePoints();
                 }
             }
         });
@@ -178,11 +180,11 @@ public class MainActivity extends AppCompatActivity {
                 String bssid = scanResult.BSSID;
                 String wifiName = scanResult.SSID;
                 int level = scanResult.level;
-//                if(wifiName.equals("UofT")) {
-//                    Log.d("DatabaseHelper","inserted");
-//                    dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
-//                }
-                dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
+                if(wifiName.equals("UofT")) {
+                    Log.d("DatabaseHelper","inserted");
+                    dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
+                }
+                //dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
 //                sb.append("BSSID: ").append(bssid).append("; WIFI name: ").append(wifiName)
 //                        .append("; Level: ").append(level).append("\n");
             }
@@ -192,9 +194,25 @@ public class MainActivity extends AppCompatActivity {
         }else {
             textViewScanResults.setText("No Wi-Fi scan results available.");
         }
-        List<String> pixelCoordinates = dbHelper.getUniqueImagePixelCoordinates();
-
+        updateBluePoints();
     }
+
+    private void updateBluePoints() {
+        List<String> uniqueCoordinates = dbHelper.getUniqueImagePixelCoordinates(floorNum);
+        List<PointF> points = new ArrayList<>();
+
+        if (!uniqueCoordinates.isEmpty() && !uniqueCoordinates.get(0).equals("No unique coordinates found.")) {
+            for (String coord : uniqueCoordinates) {
+                String[] parts = coord.split(", ");
+                float x = Float.parseFloat(parts[0].substring(3)); // Extract x after "X: "
+                float y = Float.parseFloat(parts[1].substring(3)); // Extract y after "Y: "
+                points.add(new PointF(x, y));
+            }
+        }
+
+        zoomableImageView.setUniquePoints(points); // This will either set points or an empty list
+    }
+
 
     private void extractDbFile(){
 
