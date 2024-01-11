@@ -2,9 +2,12 @@ package com.example.mac_address;
 
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.graphics.PointF;
+import android.os.Debug;
 import android.widget.ImageView;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
@@ -19,6 +22,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.example.mac_address.ZoomableImageView;
 
 import android.view.MotionEvent;
@@ -34,6 +38,7 @@ import android.provider.Settings;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
 import android.os.CountDownTimer;
 
 import java.io.File;
@@ -50,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editTextBSSID;
     private TextView textViewScanResults;
     private String floorNum = "1";
+    private PointF imagePoint;
     private WifiManager wifiManager;
 
     private Button buttonCheckDatabase;
@@ -58,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonEraseDatabase;
 
     private ZoomableImageView zoomableImageView;
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -70,15 +77,14 @@ public class MainActivity extends AppCompatActivity {
         zoomableImageView = findViewById(R.id.zoomableImageView);
 
 
-
         wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
 
         buttonStartScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PointF imagePoint = zoomableImageView.getimagePoint();
+                imagePoint = zoomableImageView.getimagePoint();
 
-                startWifiScan(floorNum,imagePoint);
+                startWifiScan();
 
                 //Toast.makeText(MainActivity.this, "Please enter a Grid ID", Toast.LENGTH_SHORT).show();
 
@@ -86,12 +92,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-
         buttonCheckDatabase.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String bssId = editTextBSSID.getText().toString().trim();
-                String databaseContents = dbHelper.getSpecDataAsString(floorNum,bssId);
+                String databaseContents = dbHelper.getSpecDataAsString(floorNum, bssId);
                 textViewScanResults.setText(databaseContents);
 
             }
@@ -104,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
                 extractDbFile();
             }
         });
-
 
 
         buttonEraseDatabase.setOnLongClickListener(new View.OnLongClickListener() {
@@ -152,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
                 String resourceName = getResources().getResourceEntryName(button.getId());
 
                 // Extract the character after "button"
-                if(resourceName.startsWith("button")) {
+                if (resourceName.startsWith("button")) {
                     floorNum = resourceName.substring("button".length());
                     // Do something with the extracted string (floorIdentifier)
                     updateBluePoints();
@@ -162,9 +166,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void startWifiScan(String floorNum, PointF imagePoint) {
-        String imagePointX = Float.toString(imagePoint.x);
-        String imagePointY = Float.toString(imagePoint.y);
+
+
+    private final ScanResultsReceiver wifiScanReceiver = new ScanResultsReceiver(this, new Callback() {
+        @Override
+        public void onSuccess() {
+            Log.d("receiver","can process now");
+            processScanResults();
+        }
+    });
+
+
+    private void startWifiScan() {
+        // Check for location permission
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MainActivity.this,
@@ -172,10 +186,21 @@ public class MainActivity extends AppCompatActivity {
                     PERMISSIONS_REQUEST_CODE);
             return;
         }
+        // Register the receiver
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+
+        wifiScanReceiver.register();
+        // Start WiFi Scan
+        wifiManager.startScan();
+    }
+
+    private void processScanResults() {
+        String imagePointX = Float.toString(imagePoint.x);
+        String imagePointY = Float.toString(imagePoint.y);
 
         List<ScanResult> scanResults = wifiManager.getScanResults();
         if (scanResults != null && !scanResults.isEmpty()) {
-//            StringBuilder sb = new StringBuilder();
             for (ScanResult scanResult : scanResults) {
                 String bssid = scanResult.BSSID;
                 String wifiName = scanResult.SSID;
@@ -184,14 +209,11 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("DatabaseHelper","inserted");
                     dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
                 }
-                //dbHelper.insertData(bssid, imagePointX,imagePointY, floorNum, String.valueOf(level),wifiName);
-//                sb.append("BSSID: ").append(bssid).append("; WIFI name: ").append(wifiName)
-//                        .append("; Level: ").append(level).append("\n");
             }
 
             String databaseContents = dbHelper.getSpecDataAsString(floorNum,"");
             textViewScanResults.setText(databaseContents);
-        }else {
+        } else {
             textViewScanResults.setText("No Wi-Fi scan results available.");
         }
         updateBluePoints();
@@ -262,6 +284,46 @@ public class MainActivity extends AppCompatActivity {
             Log.e("DatabaseHelper", "Error exporting database: " + e.getMessage());
             return false;
         }
+    }
+
+
+
+    class ScanResultsReceiver extends BroadcastReceiver {
+        private MainActivity mainActivity;
+        private Callback callback;
+        private boolean registered = false;
+
+        public ScanResultsReceiver(MainActivity mainActivity, Callback callback) {
+            this.mainActivity = mainActivity;
+            this.callback = callback;
+        }
+
+        public void register() {
+            if (!registered) {
+                IntentFilter intentFilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+                mainActivity.registerReceiver(this, intentFilter);
+                registered = true;
+            }
+        }
+
+        public void unregister() {
+            if (registered) {
+                mainActivity.unregisterReceiver(this);
+                registered = false;
+            }
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(intent.getAction()) &&
+                    intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false)) {
+                callback.onSuccess();
+            }
+        }
+    }
+
+    interface Callback {
+        void onSuccess();
     }
 
 }
